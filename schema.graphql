@@ -1,0 +1,100 @@
+type PiePay_ContributionApproved {
+  id: ID!
+  executor: String!
+  contributionId: BigInt!
+  contributor: String!
+  unitType: BigInt!
+  unitsAwarded: BigInt!
+}
+
+type PiePay_ContributionRejected {
+  id: ID!
+  executor: String!
+  contributionId: BigInt!
+  contributor: String!
+}
+
+type PiePay_ContributionSubmitted {
+  id: ID!
+  executor: String!
+  contributionId: BigInt!
+  unitType: BigInt!
+  unitsRequested: BigInt!
+  description: String!
+}
+
+type PiePay_ContributorRemoved {
+  id: ID!
+  executor: String!
+  contributor: String!
+}
+
+type PiePay_ContributorWhitelisted {
+  id: ID!
+  executor: String!
+  contributor: String!
+}
+
+type PiePay_ConversionMultipliersUpdated {
+  id: ID!
+  executor: String!
+  pToDMultiplier: BigInt!
+  pToCMultiplier: BigInt!
+  dToCMultiplier: BigInt!
+}
+
+type PiePay_PayrollFunded {
+  id: ID!
+  executor: String!
+  amount: BigInt!
+}
+
+type PiePay_PayrollManagerUpdated {
+  id: ID!
+  executor: String!
+  newManager: String!
+}
+
+type PiePay_ProjectInitialized {
+  id: ID!
+  name: String!
+  description: String!
+  executor: String!
+}
+
+type PiePay_ProjectLeadUpdated {
+  id: ID!
+  executor: String!
+  newLead: String!
+}
+
+type PiePay_TotalUnitsUpdated {
+  id: ID!
+  unitType: BigInt!
+  newTotal: BigInt!
+}
+
+type PiePay_UnitCapacityUpdated {
+  id: ID!
+  executor: String!
+  unitType: BigInt!
+  newCapacity: BigInt!
+}
+
+type PiePay_UnitsConverted {
+  id: ID!
+  executor: String!
+  fromType: BigInt!
+  toType: BigInt!
+  fromAmount: BigInt!
+  toAmount: BigInt!
+}
+
+type PiePay_UnitsDistributed {
+  id: ID!
+  executor: String!
+  unitType: BigInt!
+  totalDistributed: BigInt!
+  recipientCount: BigInt!
+}
+
