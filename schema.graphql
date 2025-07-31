@@ -1,0 +1,110 @@
+
+enum UnitType {
+  Profit
+  Debt
+  Capital
+}
+
+enum ContributionStatus {
+  None
+  Pending
+  Approved
+  Rejected
+}
+
+type Project @entity {
+  id: ID!
+  name: String!
+  description: String!
+  projectLead: String!
+  payrollManager: String!
+  contractAddress: String!
+  totalPayrollFunded: BigInt!
+  createdAt: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+}
+
+type Contributor @entity {
+  id: ID! # contributor address
+  address: String!
+  isWhitelisted: Boolean!
+  profitUnits: BigInt!
+  debtUnits: BigInt!
+  capitalUnits: BigInt!
+  totalContributions: Int!
+  totalUnitsEarned: BigInt!
+  whitelistedAt: BigInt
+  removedAt: BigInt
+  contributions: [Contribution!]! @derivedFrom(field: "contributor")
+  unitDistributions: [UnitDistribution!]! @derivedFrom(field: "contributor")
+  conversions: [UnitConversion!]! @derivedFrom(field: "contributor")
+}
+
+type Contribution @entity {
+  id: ID! # contributionId as string
+  contributionId: BigInt!
+  contributor: Contributor!
+  executor: String!
+  unitType: UnitType!
+  unitsRequested: BigInt!
+  unitsAwarded: BigInt
+  description: String!
+  status: ContributionStatus!
+  submittedAt: BigInt!
+  approvedAt: BigInt
+  rejectedAt: BigInt
+  blockNumber: BigInt!
+  transactionHash: String!
+}
+
+type UnitDistribution @entity {
+  id: ID!
+  executor: String!
+  contributor: Contributor!
+  unitType: UnitType!
+  amount: BigInt!
+  totalDistributed: BigInt!
+  recipientCount: BigInt!
+  distributedAt: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+}
+
+type PayrollFunding @entity {
+  id: ID!
+  executor: String!
+  amount: BigInt!
+  cumulativeAmount: BigInt!
+  fundedAt: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+}
+
+type UnitConversion @entity {
+  id: ID!
+  executor: String!
+  contributor: Contributor!
+  fromType: UnitType!
+  toType: UnitType!
+  fromAmount: BigInt!
+  toAmount: BigInt!
+  convertedAt: BigInt!
+  blockNumber: BigInt!
+  transactionHash: String!
+}
+
+type SystemStat @entity {
+  id: ID! # "global"
+  totalProfitUnits: BigInt!
+  totalDebtUnits: BigInt!
+  totalCapitalUnits: BigInt!
+  totalContributors: Int!
+  totalContributions: Int!
+  totalPayrollFunded: BigInt!
+  pToDMultiplier: Int!
+  pToCMultiplier: Int!
+  dToCMultiplier: Int!
+  lastUpdated: BigInt!
+}
+

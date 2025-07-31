@@ -1,0 +1,23 @@
+{
+  "name": "piepay-backend",
+  "version": "1.0.0",
+  "description": "Envio indexer for PiePay payroll system",
+  "main": "src/index.ts",
+  "scripts": {
+    "codegen": "envio codegen",
+    "dev": "envio dev",
+    "start": "envio start",
+    "stop": "envio stop",
+    "restart": "envio restart",
+    "test": "envio test"
+  },
+  "devDependencies": {
+    "envio": "^2.6.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "dependencies": {},
+  "keywords": ["envio", "indexer", "piepay", "payroll", "arbitrum"],
+  "author": "DAOMasons",
+  "license": "MIT"
+}

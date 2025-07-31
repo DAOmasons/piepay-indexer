@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=./node_modules/envio/evm.schema.json
+name: piepay-backend
+contracts:
+  - name: PiePay
+    handler: src/PiePay.ts
+    events:
+      - event: ProjectInitialized(string name, string description, address indexed executor)
+      - event: ContributionSubmitted(address indexed executor, uint256 indexed contributionId, uint8 unitType, uint256 unitsRequested, string description)
+      - event: ContributionApproved(address indexed executor, uint256 indexed contributionId, address indexed contributor, uint8 unitType, uint256 unitsAwarded)
+      - event: ContributionRejected(address indexed executor, uint256 indexed contributionId, address indexed contributor)
+      - event: UnitsDistributed(address indexed executor, uint8 indexed unitType, uint256 totalDistributed, uint256 recipientCount)
+      - event: PayrollFunded(address indexed executor, uint256 amount)
+      - event: ContributorWhitelisted(address indexed executor, address indexed contributor)
+      - event: ContributorRemoved(address indexed executor, address indexed contributor)
+      - event: ProjectLeadUpdated(address indexed executor, address indexed newLead)
+      - event: PayrollManagerUpdated(address indexed executor, address indexed newManager)
+      - event: UnitsConverted(address indexed executor, uint8 indexed fromType, uint8 indexed toType, uint256 fromAmount, uint256 toAmount)
+      - event: TotalUnitsUpdated(uint8 indexed unitType, uint256 newTotal)
+      - event: ConversionMultipliersUpdated(address indexed executor, uint16 pToDMultiplier, uint16 pToCMultiplier, uint16 dToCMultiplier)
+      - event: UnitCapacityUpdated(address indexed executor, uint8 indexed unitType, uint256 newCapacity)
+networks:
+  - id: 421614  # Arbitrum Sepolia
+    start_block: 0  # Start from current block
+    contracts:
+      - name: PiePay
+        address: 0xCfa3fAF4cd8Bfc8ba93f87c30C46dAE62B578a2b
+# rollback_on_reorg: false
+field_selection:
+  transaction_fields:
+    - "from"
+    - "to"
+    - "hash"
+    - "transactionIndex"
