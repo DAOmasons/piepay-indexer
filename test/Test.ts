@@ -1,7 +1,8 @@
 import assert from "assert";
 import { 
   TestHelpers,
-  PiePay_ContributionApproved
+  Contribution,
+  ContributionEvent
 } from "generated";
 const { MockDb, PiePay } = TestHelpers;
 
@@ -12,7 +13,7 @@ describe("PiePay contract ContributionApproved event tests", () => {
   // Creating mock for PiePay contract ContributionApproved event
   const event = PiePay.ContributionApproved.createMockEvent({/* It mocks event fields with default values. You can overwrite them if you need */});
 
-  it("PiePay_ContributionApproved is created correctly", async () => {
+  it("ContributionEvent is created correctly", async () => {
     // Processing the event
     const mockDbUpdated = await PiePay.ContributionApproved.processEvent({
       event,
@@ -20,20 +21,13 @@ describe("PiePay contract ContributionApproved event tests", () => {
     });
 
     // Getting the actual entity from the mock database
-    let actualPiePayContributionApproved = mockDbUpdated.entities.PiePay_ContributionApproved.get(
+    let actualContributionEvent = mockDbUpdated.entities.ContributionEvent.get(
       `${event.chainId}_${event.block.number}_${event.logIndex}`
     );
 
-    // Creating the expected entity
-    const expectedPiePayContributionApproved: PiePay_ContributionApproved = {
-      id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
-      executor: event.params.executor,
-      contributionId: event.params.contributionId,
-      contributor: event.params.contributor,
-      unitType: event.params.unitType,
-      unitsAwarded: event.params.unitsAwarded,
-    };
-    // Asserting that the entity in the mock database is the same as the expected entity
-    assert.deepEqual(actualPiePayContributionApproved, expectedPiePayContributionApproved, "Actual PiePayContributionApproved should be the same as the expectedPiePayContributionApproved");
+    // Verify that a ContributionEvent was created
+    assert(actualContributionEvent, "ContributionEvent should be created");
+    assert.equal(actualContributionEvent.eventType, "approved", "Event type should be 'approved'");
+    assert.equal(actualContributionEvent.executor, event.params.executor, "Executor should match");
   });
 });

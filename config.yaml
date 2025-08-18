@@ -4,9 +4,17 @@ networks:
 - id: 421614
   start_block: 0
   contracts:
+  - name: PiePayFactory
+    address:
+    - 0xDb50EFf92c986EBfFFBA7eA498FC0b3E6a4E8108
+    handler: src/EventHandlers.ts
+    events:
+    - event: ProjectCreated(uint256 indexed projectId, address indexed projectAddress, string projectName, string projectDescription, address indexed projectLead, address payrollManager, address paymentToken, address creator)
+    - event: ProjectMetadataUpdated(uint256 indexed projectId, address indexed projectAddress, address indexed updatedBy)
   - name: PiePay
     address:
     - 0xCfa3fAF4cd8Bfc8ba93f87c30C46dAE62B578a2b
+    - 0x6c31818201D7EE0F727C49967F859227830dc050  # Demo project from factory
     handler: src/EventHandlers.ts
     events:
     - event: ContributionApproved(address indexed executor, uint256 indexed contributionId, address indexed contributor, uint8 unitType, uint256 unitsAwarded)

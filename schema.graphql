@@ -1,100 +1,155 @@
-type PiePay_ContributionApproved {
-  id: ID!
-  executor: String!
-  contributionId: BigInt!
-  contributor: String!
-  unitType: BigInt!
-  unitsAwarded: BigInt!
-}
+# State Entities - Current system state
 
-type PiePay_ContributionRejected {
+type Project {
   id: ID!
-  executor: String!
-  contributionId: BigInt!
-  contributor: String!
-}
-
-type PiePay_ContributionSubmitted {
-  id: ID!
-  executor: String!
-  contributionId: BigInt!
-  unitType: BigInt!
-  unitsRequested: BigInt!
+  projectId: BigInt!
+  address: String!
+  name: String!
   description: String!
+  projectLead: String!
+  payrollManager: String!
+  paymentToken: String!
+  creator: String!
+  createdAt: BigInt!
+  lastUpdated: BigInt!
+  # Current totals
+  totalPUnits: BigInt!
+  totalDUnits: BigInt!
+  totalCUnits: BigInt!
+  totalFunding: BigInt!
+  # Reference to current settings
+  currentSettings: ProjectSettings!
+  # Relationships
+  contributors: [Contributor!]! @derivedFrom(field: "project")
+  contributions: [Contribution!]! @derivedFrom(field: "project")
+  settings: [ProjectSettings!]! @derivedFrom(field: "project")
+  events: [ProjectEvent!]! @derivedFrom(field: "project")
 }
 
-type PiePay_ContributorRemoved {
+type ProjectSettings {
   id: ID!
-  executor: String!
-  contributor: String!
-}
-
-type PiePay_ContributorWhitelisted {
-  id: ID!
-  executor: String!
-  contributor: String!
-}
-
-type PiePay_ConversionMultipliersUpdated {
-  id: ID!
-  executor: String!
+  project: Project!
+  # Configuration values
   pToDMultiplier: BigInt!
   pToCMultiplier: BigInt!
   dToCMultiplier: BigInt!
+  pUnitCapacity: BigInt!
+  dUnitCapacity: BigInt!
+  cUnitCapacity: BigInt!
+  # Metadata
+  effectiveFrom: BigInt!
+  createdAt: BigInt!
+  updatedBy: String!
 }
 
-type PiePay_PayrollFunded {
+type Contributor {
   id: ID!
-  executor: String!
-  amount: BigInt!
+  project: Project!
+  address: String!
+  # Current status
+  isWhitelisted: Boolean!
+  whitelistedAt: BigInt
+  removedAt: BigInt
+  # Current unit totals
+  totalPUnits: BigInt!
+  totalDUnits: BigInt!
+  totalCUnits: BigInt!
+  # Metadata
+  lastUpdated: BigInt!
+  # Relationships
+  contributions: [Contribution!]! @derivedFrom(field: "contributor")
+  events: [ContributorEvent!]! @derivedFrom(field: "contributor")
 }
 
-type PiePay_PayrollManagerUpdated {
+type Contribution {
   id: ID!
-  executor: String!
-  newManager: String!
-}
-
-type PiePay_ProjectInitialized {
-  id: ID!
-  name: String!
+  project: Project!
+  contributor: Contributor!
+  contributionId: BigInt!
+  # Contribution details
+  unitType: BigInt!
+  unitsRequested: BigInt!
+  unitsAwarded: BigInt!
   description: String!
-  executor: String!
+  # Current status
+  status: String! # "pending", "approved", "rejected"
+  # Timestamps
+  submittedAt: BigInt!
+  processedAt: BigInt
+  lastUpdated: BigInt!
+  # Relationships
+  events: [ContributionEvent!]! @derivedFrom(field: "contribution")
 }
 
-type PiePay_ProjectLeadUpdated {
+# Event Entities - Immutable audit trail
+
+type ContributionEvent {
   id: ID!
+  project: Project!
+  contribution: Contribution!
+  contributionId: BigInt!
+  eventType: String! # "submitted", "approved", "rejected"
+  contributor: String!
   executor: String!
-  newLead: String!
+  # Event-specific data
+  unitType: BigInt
+  unitsRequested: BigInt
+  unitsAwarded: BigInt
+  description: String
+  # Blockchain metadata
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
 }
 
-type PiePay_TotalUnitsUpdated {
+type ContributorEvent {
   id: ID!
-  unitType: BigInt!
-  newTotal: BigInt!
+  project: Project!
+  contributor: Contributor!
+  contributorAddress: String!
+  eventType: String! # "whitelisted", "removed"
+  executor: String!
+  # Blockchain metadata
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
 }
 
-type PiePay_UnitCapacityUpdated {
+type ProjectEvent {
   id: ID!
+  project: Project!
+  eventType: String! # "initialized", "lead_updated", "manager_updated", "multipliers_updated", "capacity_updated", "funded", "units_distributed", "units_converted"
   executor: String!
-  unitType: BigInt!
-  newCapacity: BigInt!
+  # Event-specific data as JSON string for flexibility
+  eventData: String!
+  # Blockchain metadata
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: String!
 }
 
-type PiePay_UnitsConverted {
+# Factory Event Entities - Keep these for factory audit trail
+
+type PiePayFactory_ProjectCreated {
   id: ID!
-  executor: String!
-  fromType: BigInt!
-  toType: BigInt!
-  fromAmount: BigInt!
-  toAmount: BigInt!
+  projectId: BigInt!
+  projectAddress: String!
+  projectName: String!
+  projectDescription: String!
+  projectLead: String!
+  payrollManager: String!
+  paymentToken: String!
+  creator: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
 }
 
-type PiePay_UnitsDistributed {
+type PiePayFactory_ProjectMetadataUpdated {
   id: ID!
-  executor: String!
-  unitType: BigInt!
-  totalDistributed: BigInt!
-  recipientCount: BigInt!
+  projectId: BigInt!
+  projectAddress: String!
+  updatedBy: String!
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
 }
 
