@@ -33,7 +33,19 @@ function createEventId(event: any): string {
 }
 
 function createTransactionHash(event: any): string {
-  return event.transaction?.hash || `${event.chainId}_${event.block.number}_${event.logIndex}`;
+  // According to Envio documentation, transaction hash should be available at event.transaction.hash
+  // If not available, we log this for debugging and return empty string to indicate no valid hash
+  const txHash = event.transaction?.hash;
+
+  if (!txHash) {
+    console.warn('Transaction hash not found in event.transaction.hash, storing empty string', {
+      availableFields: Object.keys(event),
+      transactionFields: event.transaction ? Object.keys(event.transaction) : 'transaction object not found'
+    });
+    return ''; // Return empty string instead of invalid hash format
+  }
+
+  return txHash;
 }
 
 PiePay.ContributionApproved.handler(async ({ event, context }) => {
@@ -772,6 +784,12 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }) => {
   context.ProjectSettings.set(initialSettings);
   context.PiePayFactory_ProjectCreated.set(factoryEvent);
   context.ProjectEvent.set(projectEvent);
+});
+
+// Register new PiePay contracts for dynamic discovery
+PiePayFactory.ProjectCreated.contractRegister(async ({ event, context }) => {
+  const projectAddress = event.params.projectAddress;
+  context.addPiePay(projectAddress);
 });
 
 PiePayFactory.ProjectMetadataUpdated.handler(async ({ event, context }) => {

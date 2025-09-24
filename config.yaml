@@ -2,19 +2,17 @@
 name: envio-indexer
 networks:
 - id: 421614
-  start_block: 0
+  start_block: 197356387
   contracts:
   - name: PiePayFactory
     address:
-    - 0xDb50EFf92c986EBfFFBA7eA498FC0b3E6a4E8108
+    - 0x5fBAac997c776b50e766F60156Ea3336D333107e
     handler: src/EventHandlers.ts
     events:
     - event: ProjectCreated(uint256 indexed projectId, address indexed projectAddress, string projectName, string projectDescription, address indexed projectLead, address payrollManager, address paymentToken, address creator)
     - event: ProjectMetadataUpdated(uint256 indexed projectId, address indexed projectAddress, address indexed updatedBy)
   - name: PiePay
-    address:
-    - 0xCfa3fAF4cd8Bfc8ba93f87c30C46dAE62B578a2b
-    - 0x6c31818201D7EE0F727C49967F859227830dc050  # Demo project from factory
+    address: []  # Will be dynamically added as projects are created
     handler: src/EventHandlers.ts
     events:
     - event: ContributionApproved(address indexed executor, uint256 indexed contributionId, address indexed contributor, uint8 unitType, uint256 unitsAwarded)
@@ -31,4 +29,7 @@ networks:
     - event: UnitCapacityUpdated(address indexed executor, uint8 indexed unitType, uint256 newCapacity)
     - event: UnitsConverted(address indexed executor, uint8 indexed fromType, uint8 indexed toType, uint256 fromAmount, uint256 toAmount)
     - event: UnitsDistributed(address indexed executor, uint8 indexed unitType, uint256 totalDistributed, uint256 recipientCount)
+field_selection:
+  transaction_fields:
+    - hash
 unordered_multichain_mode: true
