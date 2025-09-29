@@ -15,6 +15,26 @@ import {
   PiePayFactory_ProjectMetadataUpdated,
 } from "generated";
 
+import type {
+  PiePay_ContributionApproved_event,
+  PiePay_ContributionRejected_event,
+  PiePay_ContributionSubmitted_event,
+  PiePay_ContributorRemoved_event,
+  PiePay_ContributorWhitelisted_event,
+  PiePay_ConversionMultipliersUpdated_event,
+  PiePay_PayrollFunded_event,
+  PiePay_PayrollManagerUpdated_event,
+  PiePay_ProjectInitialized_event,
+  PiePay_ProjectLeadUpdated_event,
+  PiePay_TotalUnitsUpdated_event,
+  PiePay_UnitCapacityUpdated_event,
+  PiePay_UnitsConverted_event,
+  PiePay_UnitsDistributed_event,
+  PiePayFactory_ProjectCreated_event,
+  PiePayFactory_ProjectMetadataUpdated_event,
+  handlerContext,
+} from "generated";
+
 // Utility functions
 function createProjectId(contractAddress: string): string {
   return contractAddress.toLowerCase();
@@ -48,7 +68,7 @@ function createTransactionHash(event: any): string {
   return txHash;
 }
 
-PiePay.ContributionApproved.handler(async ({ event, context }) => {
+PiePay.ContributionApproved.handler(async ({ event, context }: { event: PiePay_ContributionApproved_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   const contributionId = createContributionId(event.srcAddress, event.params.contributionId);
   const contributorId = createContributorId(event.srcAddress, event.params.contributor);
@@ -121,7 +141,7 @@ PiePay.ContributionApproved.handler(async ({ event, context }) => {
   context.ContributionEvent.set(contributionEvent);
 });
 
-PiePay.ContributionRejected.handler(async ({ event, context }) => {
+PiePay.ContributionRejected.handler(async ({ event, context }: { event: PiePay_ContributionRejected_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   const contributionId = createContributionId(event.srcAddress, event.params.contributionId);
 
@@ -166,7 +186,7 @@ PiePay.ContributionRejected.handler(async ({ event, context }) => {
   context.ContributionEvent.set(contributionEvent);
 });
 
-PiePay.ContributionSubmitted.handler(async ({ event, context }) => {
+PiePay.ContributionSubmitted.handler(async ({ event, context }: { event: PiePay_ContributionSubmitted_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   const contributionId = createContributionId(event.srcAddress, event.params.contributionId);
   const contributorId = createContributorId(event.srcAddress, event.params.executor);
@@ -224,7 +244,7 @@ PiePay.ContributionSubmitted.handler(async ({ event, context }) => {
   context.ContributionEvent.set(contributionEvent);
 });
 
-PiePay.ContributorRemoved.handler(async ({ event, context }) => {
+PiePay.ContributorRemoved.handler(async ({ event, context }: { event: PiePay_ContributorRemoved_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   const contributorId = createContributorId(event.srcAddress, event.params.contributor);
 
@@ -262,7 +282,7 @@ PiePay.ContributorRemoved.handler(async ({ event, context }) => {
   context.ContributorEvent.set(contributorEvent);
 });
 
-PiePay.ContributorWhitelisted.handler(async ({ event, context }) => {
+PiePay.ContributorWhitelisted.handler(async ({ event, context }: { event: PiePay_ContributorWhitelisted_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   const contributorId = createContributorId(event.srcAddress, event.params.contributor);
 
@@ -312,7 +332,7 @@ PiePay.ContributorWhitelisted.handler(async ({ event, context }) => {
   context.ContributorEvent.set(contributorEvent);
 });
 
-PiePay.ConversionMultipliersUpdated.handler(async ({ event, context }) => {
+PiePay.ConversionMultipliersUpdated.handler(async ({ event, context }: { event: PiePay_ConversionMultipliersUpdated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Get current project and settings
@@ -370,7 +390,7 @@ PiePay.ConversionMultipliersUpdated.handler(async ({ event, context }) => {
   context.ProjectEvent.set(projectEvent);
 });
 
-PiePay.PayrollFunded.handler(async ({ event, context }) => {
+PiePay.PayrollFunded.handler(async ({ event, context }: { event: PiePay_PayrollFunded_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Get current project
@@ -406,7 +426,7 @@ PiePay.PayrollFunded.handler(async ({ event, context }) => {
   context.ProjectEvent.set(projectEvent);
 });
 
-PiePay.PayrollManagerUpdated.handler(async ({ event, context }) => {
+PiePay.PayrollManagerUpdated.handler(async ({ event, context }: { event: PiePay_PayrollManagerUpdated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Get current project
@@ -442,7 +462,7 @@ PiePay.PayrollManagerUpdated.handler(async ({ event, context }) => {
   context.ProjectEvent.set(projectEvent);
 });
 
-PiePay.ProjectInitialized.handler(async ({ event, context }) => {
+PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_ProjectInitialized_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Get existing project (should have been created by factory)
@@ -516,7 +536,7 @@ PiePay.ProjectInitialized.handler(async ({ event, context }) => {
   context.ProjectEvent.set(projectEvent);
 });
 
-PiePay.ProjectLeadUpdated.handler(async ({ event, context }) => {
+PiePay.ProjectLeadUpdated.handler(async ({ event, context }: { event: PiePay_ProjectLeadUpdated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Get current project
@@ -554,7 +574,7 @@ PiePay.ProjectLeadUpdated.handler(async ({ event, context }) => {
 
 // Note: TotalUnitsUpdated events are now computed from contribution approvals
 // This handler serves as a verification/sync mechanism
-PiePay.TotalUnitsUpdated.handler(async ({ event, context }) => {
+PiePay.TotalUnitsUpdated.handler(async ({ event, context }: { event: PiePay_TotalUnitsUpdated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Get current project
@@ -603,7 +623,7 @@ PiePay.TotalUnitsUpdated.handler(async ({ event, context }) => {
   context.ProjectEvent.set(projectEvent);
 });
 
-PiePay.UnitCapacityUpdated.handler(async ({ event, context }) => {
+PiePay.UnitCapacityUpdated.handler(async ({ event, context }: { event: PiePay_UnitCapacityUpdated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Get current project and settings
@@ -661,7 +681,7 @@ PiePay.UnitCapacityUpdated.handler(async ({ event, context }) => {
   context.ProjectEvent.set(projectEvent);
 });
 
-PiePay.UnitsConverted.handler(async ({ event, context }) => {
+PiePay.UnitsConverted.handler(async ({ event, context }: { event: PiePay_UnitsConverted_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Create project event record for conversion
@@ -684,7 +704,7 @@ PiePay.UnitsConverted.handler(async ({ event, context }) => {
   context.ProjectEvent.set(projectEvent);
 });
 
-PiePay.UnitsDistributed.handler(async ({ event, context }) => {
+PiePay.UnitsDistributed.handler(async ({ event, context }: { event: PiePay_UnitsDistributed_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
   
   // Create project event record for distribution
@@ -708,7 +728,7 @@ PiePay.UnitsDistributed.handler(async ({ event, context }) => {
 
 // ============ FACTORY EVENT HANDLERS ============
 
-PiePayFactory.ProjectCreated.handler(async ({ event, context }) => {
+PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayFactory_ProjectCreated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.params.projectAddress);
 
   // Create initial project settings
@@ -787,12 +807,12 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }) => {
 });
 
 // Register new PiePay contracts for dynamic discovery
-PiePayFactory.ProjectCreated.contractRegister(async ({ event, context }) => {
+PiePayFactory.ProjectCreated.contractRegister(async ({ event, context }: { event: PiePayFactory_ProjectCreated_event, context: any }) => {
   const projectAddress = event.params.projectAddress;
   context.addPiePay(projectAddress);
 });
 
-PiePayFactory.ProjectMetadataUpdated.handler(async ({ event, context }) => {
+PiePayFactory.ProjectMetadataUpdated.handler(async ({ event, context }: { event: PiePayFactory_ProjectMetadataUpdated_event, context: handlerContext }) => {
   const entity: PiePayFactory_ProjectMetadataUpdated = {
     id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
     projectId: event.params.projectId,
