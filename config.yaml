@@ -2,11 +2,11 @@
 name: envio-indexer
 networks:
 - id: 421614
-  start_block: 197356387
+  start_block: 99999999
   contracts:
   - name: PiePayFactory
     address:
-    - 0x5fBAac997c776b50e766F60156Ea3336D333107e
+    - 0xdb50eff92c986ebfffba7ea498fc0b3e6a4e8108
     handler: src/EventHandlers.ts
     events:
     - event: ProjectCreated(uint256 indexed projectId, address indexed projectAddress, string projectName, string projectDescription, address indexed projectLead, address payrollManager, address paymentToken, address creator)
@@ -29,6 +29,10 @@ networks:
     - event: UnitCapacityUpdated(address indexed executor, uint8 indexed unitType, uint256 newCapacity)
     - event: UnitsConverted(address indexed executor, uint8 indexed fromType, uint8 indexed toType, uint256 fromAmount, uint256 toAmount)
     - event: UnitsDistributed(address indexed executor, uint8 indexed unitType, uint256 totalDistributed, uint256 recipientCount)
+    - event: PayoutRatiosUpdated(address indexed executor, uint16 pRatio, uint16 dRatio, uint16 cRatio, bool waterfallEnabled)
+    - event: PayoutConfigLocked(address indexed executor)
+    - event: PayoutConfigUnlocked(address indexed executor)
+    - event: ConfiguredPayoutExecuted(address indexed executor, uint256 totalAmount, uint256 pAmount, uint256 dAmount, uint256 cAmount)
 field_selection:
   transaction_fields:
     - hash

@@ -19,6 +19,7 @@ type Project {
   totalFunding: BigInt!
   # Reference to current settings
   currentSettings: ProjectSettings!
+  currentPayoutConfig: PayoutConfig
   # Relationships
   contributors: [Contributor!]! @derivedFrom(field: "project")
   contributions: [Contribution!]! @derivedFrom(field: "project")
@@ -39,6 +40,23 @@ type ProjectSettings {
   # Metadata
   effectiveFrom: BigInt!
   createdAt: BigInt!
+  updatedBy: String!
+}
+
+type PayoutConfig {
+  id: ID!
+  project: Project!
+  # Payout ratio configuration (in basis points, 10000 = 100%)
+  pRatio: Int!
+  dRatio: Int!
+  cRatio: Int!
+  # Waterfall cascade setting
+  waterfallEnabled: Boolean!
+  # Lock status
+  isLocked: Boolean!
+  isConfigured: Boolean!
+  # Metadata
+  lastUpdated: BigInt!
   updatedBy: String!
 }
 
@@ -118,7 +136,7 @@ type ContributorEvent {
 type ProjectEvent {
   id: ID!
   project: Project!
-  eventType: String! # "initialized", "lead_updated", "manager_updated", "multipliers_updated", "capacity_updated", "funded", "units_distributed", "units_converted"
+  eventType: String! # "initialized", "lead_updated", "manager_updated", "multipliers_updated", "capacity_updated", "funded", "units_distributed", "units_converted", "payout_ratios_updated", "payout_config_locked", "payout_config_unlocked", "configured_payout_executed"
   executor: String!
   # Event-specific data as JSON string for flexibility
   eventData: String!

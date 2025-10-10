@@ -6,6 +6,7 @@ import {
   PiePayFactory,
   Project,
   ProjectSettings,
+  PayoutConfig,
   Contributor,
   Contribution,
   ContributionEvent,
@@ -30,6 +31,10 @@ import type {
   PiePay_UnitCapacityUpdated_event,
   PiePay_UnitsConverted_event,
   PiePay_UnitsDistributed_event,
+  PiePay_PayoutRatiosUpdated_event,
+  PiePay_PayoutConfigLocked_event,
+  PiePay_PayoutConfigUnlocked_event,
+  PiePay_ConfiguredPayoutExecuted_event,
   PiePayFactory_ProjectCreated_event,
   PiePayFactory_ProjectMetadataUpdated_event,
   handlerContext,
@@ -503,6 +508,7 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
       totalCUnits: 0n,
       totalFunding: 0n,
       currentSettings_id: initialSettings.id,
+      currentPayoutConfig_id: undefined,
     };
     
     context.ProjectSettings.set(initialSettings);
@@ -515,25 +521,12 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
       lastUpdated: BigInt(event.block.timestamp),
     };
   }
-  
-  // Create project event record
-  const projectEvent: ProjectEvent = {
-    id: createEventId(event),
-    project_id: projectId,
-    eventType: "initialized",
-    executor: event.params.executor,
-    eventData: JSON.stringify({
-      name: event.params.name,
-      description: event.params.description,
-    }),
-    blockNumber: BigInt(event.block.number),
-    blockTimestamp: BigInt(event.block.timestamp),
-    transactionHash: createTransactionHash(event),
-  };
-  
-  // Save updates
-  context.Project.set(project);
-  context.ProjectEvent.set(projectEvent);
+
+  // Don't create a project event for initialization since it's redundant with the factory "created" event
+  // Just save the project updates
+  if (project) {
+    context.Project.set(project);
+  }
 });
 
 PiePay.ProjectLeadUpdated.handler(async ({ event, context }: { event: PiePay_ProjectLeadUpdated_event, context: handlerContext }) => {
@@ -726,6 +719,202 @@ PiePay.UnitsDistributed.handler(async ({ event, context }: { event: PiePay_Units
   context.ProjectEvent.set(projectEvent);
 });
 
+// ============ PAYOUT CONFIG EVENT HANDLERS ============
+
+PiePay.PayoutRatiosUpdated.handler(async ({ event, context }: { event: PiePay_PayoutRatiosUpdated_event, context: handlerContext }) => {
+  const projectId = createProjectId(event.srcAddress);
+
+  // Get current project
+  const project = await context.Project.get(projectId);
+  if (!project) {
+    context.log.error(`Project not found for PayoutRatiosUpdated: ${projectId}`);
+    return;
+  }
+
+  // Create or update PayoutConfig entity
+  const payoutConfigId = `${projectId}_payoutconfig`;
+  const payoutConfig: PayoutConfig = {
+    id: payoutConfigId,
+    project_id: projectId,
+    pRatio: Number(event.params.pRatio),
+    dRatio: Number(event.params.dRatio),
+    cRatio: Number(event.params.cRatio),
+    waterfallEnabled: event.params.waterfallEnabled,
+    isLocked: false, // Ratios can only be updated when unlocked
+    isConfigured: true,
+    lastUpdated: BigInt(event.block.timestamp),
+    updatedBy: event.params.executor,
+  };
+
+  // Update project to reference payout config
+  const updatedProject: Project = {
+    ...project,
+    currentPayoutConfig_id: payoutConfigId,
+    lastUpdated: BigInt(event.block.timestamp),
+  };
+
+  // Create project event record
+  const projectEvent: ProjectEvent = {
+    id: createEventId(event),
+    project_id: projectId,
+    eventType: "payout_ratios_updated",
+    executor: event.params.executor,
+    eventData: JSON.stringify({
+      pRatio: event.params.pRatio.toString(),
+      dRatio: event.params.dRatio.toString(),
+      cRatio: event.params.cRatio.toString(),
+      waterfallEnabled: event.params.waterfallEnabled,
+    }),
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: createTransactionHash(event),
+  };
+
+  // Save updates
+  context.Project.set(updatedProject);
+  context.PayoutConfig.set(payoutConfig);
+  context.ProjectEvent.set(projectEvent);
+});
+
+PiePay.PayoutConfigLocked.handler(async ({ event, context }: { event: PiePay_PayoutConfigLocked_event, context: handlerContext }) => {
+  const projectId = createProjectId(event.srcAddress);
+
+  // Get current project
+  const project = await context.Project.get(projectId);
+  if (!project) {
+    context.log.error(`Project not found for PayoutConfigLocked: ${projectId}`);
+    return;
+  }
+
+  // Get current payout config
+  const payoutConfigId = project.currentPayoutConfig_id;
+  if (!payoutConfigId) {
+    context.log.error(`PayoutConfig not found for project: ${projectId}`);
+    return;
+  }
+
+  const payoutConfig = await context.PayoutConfig.get(payoutConfigId);
+  if (!payoutConfig) {
+    context.log.error(`PayoutConfig entity not found: ${payoutConfigId}`);
+    return;
+  }
+
+  // Update payout config to locked
+  const updatedPayoutConfig: PayoutConfig = {
+    ...payoutConfig,
+    isLocked: true,
+    lastUpdated: BigInt(event.block.timestamp),
+    updatedBy: event.params.executor,
+  };
+
+  // Create project event record
+  const projectEvent: ProjectEvent = {
+    id: createEventId(event),
+    project_id: projectId,
+    eventType: "payout_config_locked",
+    executor: event.params.executor,
+    eventData: JSON.stringify({
+      lockedAt: event.block.timestamp.toString(),
+    }),
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: createTransactionHash(event),
+  };
+
+  // Save updates
+  context.PayoutConfig.set(updatedPayoutConfig);
+  context.ProjectEvent.set(projectEvent);
+});
+
+PiePay.PayoutConfigUnlocked.handler(async ({ event, context }: { event: PiePay_PayoutConfigUnlocked_event, context: handlerContext }) => {
+  const projectId = createProjectId(event.srcAddress);
+
+  // Get current project
+  const project = await context.Project.get(projectId);
+  if (!project) {
+    context.log.error(`Project not found for PayoutConfigUnlocked: ${projectId}`);
+    return;
+  }
+
+  // Get current payout config
+  const payoutConfigId = project.currentPayoutConfig_id;
+  if (!payoutConfigId) {
+    context.log.error(`PayoutConfig not found for project: ${projectId}`);
+    return;
+  }
+
+  const payoutConfig = await context.PayoutConfig.get(payoutConfigId);
+  if (!payoutConfig) {
+    context.log.error(`PayoutConfig entity not found: ${payoutConfigId}`);
+    return;
+  }
+
+  // Update payout config to unlocked
+  const updatedPayoutConfig: PayoutConfig = {
+    ...payoutConfig,
+    isLocked: false,
+    lastUpdated: BigInt(event.block.timestamp),
+    updatedBy: event.params.executor,
+  };
+
+  // Create project event record
+  const projectEvent: ProjectEvent = {
+    id: createEventId(event),
+    project_id: projectId,
+    eventType: "payout_config_unlocked",
+    executor: event.params.executor,
+    eventData: JSON.stringify({
+      unlockedAt: event.block.timestamp.toString(),
+    }),
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: createTransactionHash(event),
+  };
+
+  // Save updates
+  context.PayoutConfig.set(updatedPayoutConfig);
+  context.ProjectEvent.set(projectEvent);
+});
+
+PiePay.ConfiguredPayoutExecuted.handler(async ({ event, context }: { event: PiePay_ConfiguredPayoutExecuted_event, context: handlerContext }) => {
+  const projectId = createProjectId(event.srcAddress);
+
+  // Get current project
+  const project = await context.Project.get(projectId);
+  if (!project) {
+    context.log.error(`Project not found for ConfiguredPayoutExecuted: ${projectId}`);
+    return;
+  }
+
+  // Update project funding total (subtract the payout amount)
+  const updatedProject: Project = {
+    ...project,
+    totalFunding: project.totalFunding - event.params.totalAmount,
+    lastUpdated: BigInt(event.block.timestamp),
+  };
+
+  // Create project event record
+  const projectEvent: ProjectEvent = {
+    id: createEventId(event),
+    project_id: projectId,
+    eventType: "configured_payout_executed",
+    executor: event.params.executor,
+    eventData: JSON.stringify({
+      totalAmount: event.params.totalAmount.toString(),
+      pAmount: event.params.pAmount.toString(),
+      dAmount: event.params.dAmount.toString(),
+      cAmount: event.params.cAmount.toString(),
+    }),
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: createTransactionHash(event),
+  };
+
+  // Save updates
+  context.Project.set(updatedProject);
+  context.ProjectEvent.set(projectEvent);
+});
+
 // ============ FACTORY EVENT HANDLERS ============
 
 PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayFactory_ProjectCreated_event, context: handlerContext }) => {
@@ -764,6 +953,7 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayF
     totalCUnits: 0n,
     totalFunding: 0n,
     currentSettings_id: initialSettings.id,
+    currentPayoutConfig_id: undefined,
   };
 
   // Create factory event record
