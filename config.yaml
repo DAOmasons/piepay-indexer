@@ -2,11 +2,11 @@
 name: envio-indexer
 networks:
 - id: 421614
-  start_block: 182044006
+  start_block: 203649185
   contracts:
   - name: PiePayFactory
     address:
-    - 0x4ff1c23a3dacc60D2465Ad1E993924175D4C4352
+    - 0x4C5F4A571Da98e757BC578036aC87486600867b5
     handler: src/EventHandlers.ts
     events:
     - event: ProjectCreated(uint256 indexed projectId, address indexed projectAddress, string projectName, string projectDescription, address indexed projectLead, address payrollManager, address paymentToken, address creator)
