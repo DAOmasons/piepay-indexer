@@ -163,7 +163,7 @@ PiePay.ContributionRejected.handler(async ({ event, context }: { event: PiePay_C
   const updatedContribution: Contribution = {
     ...contribution,
     status: "rejected",
-    unitsAwarded: BigInt(0),
+    unitsAwarded: 0n,
     processedAt: BigInt(event.block.timestamp),
     lastUpdated: BigInt(event.block.timestamp),
   };
@@ -218,7 +218,7 @@ PiePay.ContributionSubmitted.handler(async ({ event, context }: { event: PiePay_
     contributionId: event.params.contributionId,
     unitType: event.params.unitType,
     unitsRequested: event.params.unitsRequested,
-    unitsAwarded: BigInt(0),
+    unitsAwarded: 0n,
     description: event.params.description,
     status: "pending",
     submittedAt: BigInt(event.block.timestamp),
@@ -303,9 +303,9 @@ PiePay.ContributorWhitelisted.handler(async ({ event, context }: { event: PiePay
       isWhitelisted: true,
       whitelistedAt: BigInt(event.block.timestamp),
       removedAt: undefined,
-      totalPUnits: BigInt(0),
-      totalDUnits: BigInt(0),
-      totalCUnits: BigInt(0),
+      totalPUnits: 0n,
+      totalDUnits: 0n,
+      totalCUnits: 0n,
       lastUpdated: BigInt(event.block.timestamp),
     };
   } else {
@@ -339,81 +339,60 @@ PiePay.ContributorWhitelisted.handler(async ({ event, context }: { event: PiePay
 
 PiePay.ConversionMultipliersUpdated.handler(async ({ event, context }: { event: PiePay_ConversionMultipliersUpdated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
-
-  // Get current project
+  
+  // Get current project and settings
   const project = await context.Project.get(projectId);
-
-  // If project doesn't exist yet, this is constructor emission before ProjectCreated
-  // Create settings that ProjectCreated will find later
   if (!project) {
-    const settingsId = `${projectId}_0`;
-    const newSettings: ProjectSettings = {
-      id: settingsId,
-      project_id: projectId,
-      pToDMultiplier: event.params.pToDMultiplier,
-      pToCMultiplier: event.params.pToCMultiplier,
-      dToCMultiplier: event.params.dToCMultiplier,
-      pUnitCapacity: BigInt(1000000), // Default capacity
-      dUnitCapacity: BigInt(1000000),
-      cUnitCapacity: BigInt(1000000),
-      effectiveFrom: BigInt(event.block.timestamp),
-      createdAt: BigInt(event.block.timestamp),
-      updatedBy: event.params.executor,
-    };
-
-    context.ProjectSettings.set(newSettings);
-    // Don't create project event yet - project doesn't exist
+    context.log.error(`Project not found for ConversionMultipliersUpdated: ${projectId}`);
     return;
   }
-
-  // Try to get current settings
+  
   const currentSettings = await context.ProjectSettings.get(project.currentSettings_id);
-
-  // If settings exist, create new version (normal update flow)
-  if (currentSettings) {
-    const newSettingsId = `${projectId}_${Date.now()}`;
-    const newSettings: ProjectSettings = {
-      ...currentSettings,
-      id: newSettingsId,
-      pToDMultiplier: event.params.pToDMultiplier,
-      pToCMultiplier: event.params.pToCMultiplier,
-      dToCMultiplier: event.params.dToCMultiplier,
-      effectiveFrom: BigInt(event.block.timestamp),
-      createdAt: BigInt(event.block.timestamp),
-      updatedBy: event.params.executor,
-    };
-
-    // Update project to reference new settings
-    const updatedProject: Project = {
-      ...project,
-      currentSettings_id: newSettingsId,
-      lastUpdated: BigInt(event.block.timestamp),
-    };
-
-    // Create project event record
-    const projectEvent: ProjectEvent = {
-      id: createEventId(event),
-      project_id: projectId,
-      eventType: "multipliers_updated",
-      executor: event.params.executor,
-      eventData: JSON.stringify({
-        pToDMultiplier: event.params.pToDMultiplier.toString(),
-        pToCMultiplier: event.params.pToCMultiplier.toString(),
-        dToCMultiplier: event.params.dToCMultiplier.toString(),
-      }),
-      blockNumber: BigInt(event.block.number),
-      blockTimestamp: BigInt(event.block.timestamp),
-      transactionHash: createTransactionHash(event),
-    };
-
-    // Save updates
-    context.Project.set(updatedProject);
-    context.ProjectSettings.set(newSettings);
-    context.ProjectEvent.set(projectEvent);
-  } else {
-    // CurrentSettings doesn't exist - this shouldn't happen if ProjectCreated ran first
-    context.log.error(`Current settings not found for ConversionMultipliersUpdated: ${project.currentSettings_id}`);
+  if (!currentSettings) {
+    context.log.error(`Current settings not found: ${project.currentSettings_id}`);
+    return;
   }
+  
+  // Create new settings version
+  const newSettingsId = `${projectId}_${Date.now()}`;
+  const newSettings: ProjectSettings = {
+    ...currentSettings,
+    id: newSettingsId,
+    pToDMultiplier: event.params.pToDMultiplier,
+    pToCMultiplier: event.params.pToCMultiplier,
+    dToCMultiplier: event.params.dToCMultiplier,
+    effectiveFrom: BigInt(event.block.timestamp),
+    createdAt: BigInt(event.block.timestamp),
+    updatedBy: event.params.executor,
+  };
+  
+  // Update project to reference new settings
+  const updatedProject: Project = {
+    ...project,
+    currentSettings_id: newSettingsId,
+    lastUpdated: BigInt(event.block.timestamp),
+  };
+  
+  // Create project event record
+  const projectEvent: ProjectEvent = {
+    id: createEventId(event),
+    project_id: projectId,
+    eventType: "multipliers_updated",
+    executor: event.params.executor,
+    eventData: JSON.stringify({
+      pToDMultiplier: event.params.pToDMultiplier.toString(),
+      pToCMultiplier: event.params.pToCMultiplier.toString(),
+      dToCMultiplier: event.params.dToCMultiplier.toString(),
+    }),
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
+    transactionHash: createTransactionHash(event),
+  };
+  
+  // Save updates
+  context.Project.set(updatedProject);
+  context.ProjectSettings.set(newSettings);
+  context.ProjectEvent.set(projectEvent);
 });
 
 PiePay.PayrollFunded.handler(async ({ event, context }: { event: PiePay_PayrollFunded_event, context: handlerContext }) => {
@@ -498,9 +477,9 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
     context.log.warn(`Project not found for ProjectInitialized, creating new: ${projectId}`);
     
     // Create project if it doesn't exist (fallback for direct deployments)
-    const defaultPToDMultiplier = BigInt(15000);
-    const defaultPToCMultiplier = BigInt(3000);
-    const defaultDToCMultiplier = BigInt(2000);
+    const defaultPToDMultiplier = 15000n;
+    const defaultPToCMultiplier = 3000n;
+    const defaultDToCMultiplier = 2000n;
 
     const initialSettings: ProjectSettings = {
       id: `${projectId}_0`,
@@ -508,9 +487,9 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
       pToDMultiplier: defaultPToDMultiplier,
       pToCMultiplier: defaultPToCMultiplier,
       dToCMultiplier: defaultDToCMultiplier,
-      pUnitCapacity: BigInt(1000000),
-      dUnitCapacity: BigInt(1000000),
-      cUnitCapacity: BigInt(1000000),
+      pUnitCapacity: 1000000n,
+      dUnitCapacity: 1000000n,
+      cUnitCapacity: 1000000n,
       effectiveFrom: BigInt(event.block.timestamp),
       createdAt: BigInt(event.block.timestamp),
       updatedBy: event.params.executor,
@@ -518,7 +497,7 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
     
     project = {
       id: projectId,
-      projectId: BigInt(0), // Unknown project ID for direct deployments
+      projectId: 0n, // Unknown project ID for direct deployments
       address: event.srcAddress,
       name: event.params.name,
       description: event.params.description,
@@ -528,10 +507,10 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
       creator: event.params.executor,
       createdAt: BigInt(event.block.timestamp),
       lastUpdated: BigInt(event.block.timestamp),
-      totalPUnits: BigInt(0),
-      totalDUnits: BigInt(0),
-      totalCUnits: BigInt(0),
-      totalFunding: BigInt(0),
+      totalPUnits: 0n,
+      totalDUnits: 0n,
+      totalCUnits: 0n,
+      totalFunding: 0n,
       currentSettings_id: initialSettings.id,
       currentPayoutConfig_id: undefined,
     };
@@ -604,8 +583,8 @@ PiePay.TotalUnitsUpdated.handler(async ({ event, context }: { event: PiePay_Tota
   
   // Verify our computed totals match the contract
   const unitType = Number(event.params.unitType);
-  let currentTotal = BigInt(0);
-
+  let currentTotal = 0n;
+  
   if (unitType === 0) currentTotal = project.totalPUnits;
   else if (unitType === 1) currentTotal = project.totalDUnits;
   else if (unitType === 2) currentTotal = project.totalCUnits;
@@ -945,32 +924,20 @@ PiePay.ConfiguredPayoutExecuted.handler(async ({ event, context }: { event: PieP
 PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayFactory_ProjectCreated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.params.projectAddress);
 
-  // Check if settings already exist (from ConversionMultipliersUpdated event that may have fired first)
-  const settingsId = `${projectId}_0`;
-  let existingSettings = await context.ProjectSettings.get(settingsId);
-
-  let initialSettings: ProjectSettings;
-  if (existingSettings) {
-    // Settings already created by ConversionMultipliersUpdated - use those
-    initialSettings = existingSettings;
-  } else {
-    // Create initial project settings (match contract defaults as fallback)
-    initialSettings = {
-      id: settingsId,
-      project_id: projectId,
-      pToDMultiplier: BigInt(15000), // 150% - matches contract default
-      pToCMultiplier: BigInt(3000),  // 30% - matches contract default
-      dToCMultiplier: BigInt(2000),  // 20% - matches contract default
-      pUnitCapacity: BigInt(1000000),
-      dUnitCapacity: BigInt(1000000),
-      cUnitCapacity: BigInt(1000000),
-      effectiveFrom: BigInt(event.block.timestamp),
-      createdAt: BigInt(event.block.timestamp),
-      updatedBy: event.params.creator,
-    };
-    // Save the settings since they don't exist yet
-    context.ProjectSettings.set(initialSettings);
-  }
+  // Create initial project settings (match contract defaults)
+  const initialSettings: ProjectSettings = {
+    id: `${projectId}_0`, // First settings version
+    project_id: projectId,
+    pToDMultiplier: 15000n, // 150% - matches contract default
+    pToCMultiplier: 3000n,  // 30% - matches contract default
+    dToCMultiplier: 2000n,  // 20% - matches contract default
+    pUnitCapacity: 1000000n,
+    dUnitCapacity: 1000000n,
+    cUnitCapacity: 1000000n,
+    effectiveFrom: BigInt(event.block.timestamp),
+    createdAt: BigInt(event.block.timestamp),
+    updatedBy: event.params.creator,
+  };
 
   // Create project entity
   const project: Project = {
@@ -985,10 +952,10 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayF
     creator: event.params.creator,
     createdAt: BigInt(event.block.timestamp),
     lastUpdated: BigInt(event.block.timestamp),
-    totalPUnits: BigInt(0),
-    totalDUnits: BigInt(0),
-    totalCUnits: BigInt(0),
-    totalFunding: BigInt(0),
+    totalPUnits: 0n,
+    totalDUnits: 0n,
+    totalCUnits: 0n,
+    totalFunding: 0n,
     currentSettings_id: initialSettings.id,
     currentPayoutConfig_id: undefined,
   };
