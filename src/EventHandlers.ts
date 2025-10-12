@@ -924,13 +924,13 @@ PiePay.ConfiguredPayoutExecuted.handler(async ({ event, context }: { event: PieP
 PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayFactory_ProjectCreated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.params.projectAddress);
 
-  // Create initial project settings
+  // Create initial project settings (match contract defaults)
   const initialSettings: ProjectSettings = {
     id: `${projectId}_0`, // First settings version
     project_id: projectId,
-    pToDMultiplier: 10000n, // will be updated by the contract event immediately after initialization
-    pToCMultiplier: 10000n,
-    dToCMultiplier: 10000n,
+    pToDMultiplier: 15000n, // 150% - matches contract default
+    pToCMultiplier: 3000n,  // 30% - matches contract default
+    dToCMultiplier: 2000n,  // 20% - matches contract default
     pUnitCapacity: 1000000n,
     dUnitCapacity: 1000000n,
     cUnitCapacity: 1000000n,
