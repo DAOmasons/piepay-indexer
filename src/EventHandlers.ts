@@ -163,7 +163,7 @@ PiePay.ContributionRejected.handler(async ({ event, context }: { event: PiePay_C
   const updatedContribution: Contribution = {
     ...contribution,
     status: "rejected",
-    unitsAwarded: 0n,
+    unitsAwarded: BigInt(0),
     processedAt: BigInt(event.block.timestamp),
     lastUpdated: BigInt(event.block.timestamp),
   };
@@ -218,7 +218,7 @@ PiePay.ContributionSubmitted.handler(async ({ event, context }: { event: PiePay_
     contributionId: event.params.contributionId,
     unitType: event.params.unitType,
     unitsRequested: event.params.unitsRequested,
-    unitsAwarded: 0n,
+    unitsAwarded: BigInt(0),
     description: event.params.description,
     status: "pending",
     submittedAt: BigInt(event.block.timestamp),
@@ -303,9 +303,9 @@ PiePay.ContributorWhitelisted.handler(async ({ event, context }: { event: PiePay
       isWhitelisted: true,
       whitelistedAt: BigInt(event.block.timestamp),
       removedAt: undefined,
-      totalPUnits: 0n,
-      totalDUnits: 0n,
-      totalCUnits: 0n,
+      totalPUnits: BigInt(0),
+      totalDUnits: BigInt(0),
+      totalCUnits: BigInt(0),
       lastUpdated: BigInt(event.block.timestamp),
     };
   } else {
@@ -353,9 +353,9 @@ PiePay.ConversionMultipliersUpdated.handler(async ({ event, context }: { event: 
       pToDMultiplier: event.params.pToDMultiplier,
       pToCMultiplier: event.params.pToCMultiplier,
       dToCMultiplier: event.params.dToCMultiplier,
-      pUnitCapacity: 1000000n, // Default capacity
-      dUnitCapacity: 1000000n,
-      cUnitCapacity: 1000000n,
+      pUnitCapacity: BigInt(1000000), // Default capacity
+      dUnitCapacity: BigInt(1000000),
+      cUnitCapacity: BigInt(1000000),
       effectiveFrom: BigInt(event.block.timestamp),
       createdAt: BigInt(event.block.timestamp),
       updatedBy: event.params.executor,
@@ -498,9 +498,9 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
     context.log.warn(`Project not found for ProjectInitialized, creating new: ${projectId}`);
     
     // Create project if it doesn't exist (fallback for direct deployments)
-    const defaultPToDMultiplier = 15000n;
-    const defaultPToCMultiplier = 3000n;
-    const defaultDToCMultiplier = 2000n;
+    const defaultPToDMultiplier = BigInt(15000);
+    const defaultPToCMultiplier = BigInt(3000);
+    const defaultDToCMultiplier = BigInt(2000);
 
     const initialSettings: ProjectSettings = {
       id: `${projectId}_0`,
@@ -508,9 +508,9 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
       pToDMultiplier: defaultPToDMultiplier,
       pToCMultiplier: defaultPToCMultiplier,
       dToCMultiplier: defaultDToCMultiplier,
-      pUnitCapacity: 1000000n,
-      dUnitCapacity: 1000000n,
-      cUnitCapacity: 1000000n,
+      pUnitCapacity: BigInt(1000000),
+      dUnitCapacity: BigInt(1000000),
+      cUnitCapacity: BigInt(1000000),
       effectiveFrom: BigInt(event.block.timestamp),
       createdAt: BigInt(event.block.timestamp),
       updatedBy: event.params.executor,
@@ -518,7 +518,7 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
     
     project = {
       id: projectId,
-      projectId: 0n, // Unknown project ID for direct deployments
+      projectId: BigInt(0), // Unknown project ID for direct deployments
       address: event.srcAddress,
       name: event.params.name,
       description: event.params.description,
@@ -528,10 +528,10 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
       creator: event.params.executor,
       createdAt: BigInt(event.block.timestamp),
       lastUpdated: BigInt(event.block.timestamp),
-      totalPUnits: 0n,
-      totalDUnits: 0n,
-      totalCUnits: 0n,
-      totalFunding: 0n,
+      totalPUnits: BigInt(0),
+      totalDUnits: BigInt(0),
+      totalCUnits: BigInt(0),
+      totalFunding: BigInt(0),
       currentSettings_id: initialSettings.id,
       currentPayoutConfig_id: undefined,
     };
@@ -604,8 +604,8 @@ PiePay.TotalUnitsUpdated.handler(async ({ event, context }: { event: PiePay_Tota
   
   // Verify our computed totals match the contract
   const unitType = Number(event.params.unitType);
-  let currentTotal = 0n;
-  
+  let currentTotal = BigInt(0);
+
   if (unitType === 0) currentTotal = project.totalPUnits;
   else if (unitType === 1) currentTotal = project.totalDUnits;
   else if (unitType === 2) currentTotal = project.totalCUnits;
@@ -958,12 +958,12 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayF
     initialSettings = {
       id: settingsId,
       project_id: projectId,
-      pToDMultiplier: 15000n, // 150% - matches contract default
-      pToCMultiplier: 3000n,  // 30% - matches contract default
-      dToCMultiplier: 2000n,  // 20% - matches contract default
-      pUnitCapacity: 1000000n,
-      dUnitCapacity: 1000000n,
-      cUnitCapacity: 1000000n,
+      pToDMultiplier: BigInt(15000), // 150% - matches contract default
+      pToCMultiplier: BigInt(3000),  // 30% - matches contract default
+      dToCMultiplier: BigInt(2000),  // 20% - matches contract default
+      pUnitCapacity: BigInt(1000000),
+      dUnitCapacity: BigInt(1000000),
+      cUnitCapacity: BigInt(1000000),
       effectiveFrom: BigInt(event.block.timestamp),
       createdAt: BigInt(event.block.timestamp),
       updatedBy: event.params.creator,
@@ -985,10 +985,10 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayF
     creator: event.params.creator,
     createdAt: BigInt(event.block.timestamp),
     lastUpdated: BigInt(event.block.timestamp),
-    totalPUnits: 0n,
-    totalDUnits: 0n,
-    totalCUnits: 0n,
-    totalFunding: 0n,
+    totalPUnits: BigInt(0),
+    totalDUnits: BigInt(0),
+    totalCUnits: BigInt(0),
+    totalFunding: BigInt(0),
     currentSettings_id: initialSettings.id,
     currentPayoutConfig_id: undefined,
   };
