@@ -339,60 +339,81 @@ PiePay.ContributorWhitelisted.handler(async ({ event, context }: { event: PiePay
 
 PiePay.ConversionMultipliersUpdated.handler(async ({ event, context }: { event: PiePay_ConversionMultipliersUpdated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
-  
-  // Get current project and settings
+
+  // Get current project
   const project = await context.Project.get(projectId);
+
+  // If project doesn't exist yet, this is constructor emission before ProjectCreated
+  // Create settings that ProjectCreated will find later
   if (!project) {
-    context.log.error(`Project not found for ConversionMultipliersUpdated: ${projectId}`);
+    const settingsId = `${projectId}_0`;
+    const newSettings: ProjectSettings = {
+      id: settingsId,
+      project_id: projectId,
+      pToDMultiplier: event.params.pToDMultiplier,
+      pToCMultiplier: event.params.pToCMultiplier,
+      dToCMultiplier: event.params.dToCMultiplier,
+      pUnitCapacity: 1000000n, // Default capacity
+      dUnitCapacity: 1000000n,
+      cUnitCapacity: 1000000n,
+      effectiveFrom: BigInt(event.block.timestamp),
+      createdAt: BigInt(event.block.timestamp),
+      updatedBy: event.params.executor,
+    };
+
+    context.ProjectSettings.set(newSettings);
+    // Don't create project event yet - project doesn't exist
     return;
   }
-  
+
+  // Try to get current settings
   const currentSettings = await context.ProjectSettings.get(project.currentSettings_id);
-  if (!currentSettings) {
-    context.log.error(`Current settings not found: ${project.currentSettings_id}`);
-    return;
+
+  // If settings exist, create new version (normal update flow)
+  if (currentSettings) {
+    const newSettingsId = `${projectId}_${Date.now()}`;
+    const newSettings: ProjectSettings = {
+      ...currentSettings,
+      id: newSettingsId,
+      pToDMultiplier: event.params.pToDMultiplier,
+      pToCMultiplier: event.params.pToCMultiplier,
+      dToCMultiplier: event.params.dToCMultiplier,
+      effectiveFrom: BigInt(event.block.timestamp),
+      createdAt: BigInt(event.block.timestamp),
+      updatedBy: event.params.executor,
+    };
+
+    // Update project to reference new settings
+    const updatedProject: Project = {
+      ...project,
+      currentSettings_id: newSettingsId,
+      lastUpdated: BigInt(event.block.timestamp),
+    };
+
+    // Create project event record
+    const projectEvent: ProjectEvent = {
+      id: createEventId(event),
+      project_id: projectId,
+      eventType: "multipliers_updated",
+      executor: event.params.executor,
+      eventData: JSON.stringify({
+        pToDMultiplier: event.params.pToDMultiplier.toString(),
+        pToCMultiplier: event.params.pToCMultiplier.toString(),
+        dToCMultiplier: event.params.dToCMultiplier.toString(),
+      }),
+      blockNumber: BigInt(event.block.number),
+      blockTimestamp: BigInt(event.block.timestamp),
+      transactionHash: createTransactionHash(event),
+    };
+
+    // Save updates
+    context.Project.set(updatedProject);
+    context.ProjectSettings.set(newSettings);
+    context.ProjectEvent.set(projectEvent);
+  } else {
+    // CurrentSettings doesn't exist - this shouldn't happen if ProjectCreated ran first
+    context.log.error(`Current settings not found for ConversionMultipliersUpdated: ${project.currentSettings_id}`);
   }
-  
-  // Create new settings version
-  const newSettingsId = `${projectId}_${Date.now()}`;
-  const newSettings: ProjectSettings = {
-    ...currentSettings,
-    id: newSettingsId,
-    pToDMultiplier: event.params.pToDMultiplier,
-    pToCMultiplier: event.params.pToCMultiplier,
-    dToCMultiplier: event.params.dToCMultiplier,
-    effectiveFrom: BigInt(event.block.timestamp),
-    createdAt: BigInt(event.block.timestamp),
-    updatedBy: event.params.executor,
-  };
-  
-  // Update project to reference new settings
-  const updatedProject: Project = {
-    ...project,
-    currentSettings_id: newSettingsId,
-    lastUpdated: BigInt(event.block.timestamp),
-  };
-  
-  // Create project event record
-  const projectEvent: ProjectEvent = {
-    id: createEventId(event),
-    project_id: projectId,
-    eventType: "multipliers_updated",
-    executor: event.params.executor,
-    eventData: JSON.stringify({
-      pToDMultiplier: event.params.pToDMultiplier.toString(),
-      pToCMultiplier: event.params.pToCMultiplier.toString(),
-      dToCMultiplier: event.params.dToCMultiplier.toString(),
-    }),
-    blockNumber: BigInt(event.block.number),
-    blockTimestamp: BigInt(event.block.timestamp),
-    transactionHash: createTransactionHash(event),
-  };
-  
-  // Save updates
-  context.Project.set(updatedProject);
-  context.ProjectSettings.set(newSettings);
-  context.ProjectEvent.set(projectEvent);
 });
 
 PiePay.PayrollFunded.handler(async ({ event, context }: { event: PiePay_PayrollFunded_event, context: handlerContext }) => {
@@ -924,20 +945,32 @@ PiePay.ConfiguredPayoutExecuted.handler(async ({ event, context }: { event: PieP
 PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayFactory_ProjectCreated_event, context: handlerContext }) => {
   const projectId = createProjectId(event.params.projectAddress);
 
-  // Create initial project settings (match contract defaults)
-  const initialSettings: ProjectSettings = {
-    id: `${projectId}_0`, // First settings version
-    project_id: projectId,
-    pToDMultiplier: 15000n, // 150% - matches contract default
-    pToCMultiplier: 3000n,  // 30% - matches contract default
-    dToCMultiplier: 2000n,  // 20% - matches contract default
-    pUnitCapacity: 1000000n,
-    dUnitCapacity: 1000000n,
-    cUnitCapacity: 1000000n,
-    effectiveFrom: BigInt(event.block.timestamp),
-    createdAt: BigInt(event.block.timestamp),
-    updatedBy: event.params.creator,
-  };
+  // Check if settings already exist (from ConversionMultipliersUpdated event that may have fired first)
+  const settingsId = `${projectId}_0`;
+  let existingSettings = await context.ProjectSettings.get(settingsId);
+
+  let initialSettings: ProjectSettings;
+  if (existingSettings) {
+    // Settings already created by ConversionMultipliersUpdated - use those
+    initialSettings = existingSettings;
+  } else {
+    // Create initial project settings (match contract defaults as fallback)
+    initialSettings = {
+      id: settingsId,
+      project_id: projectId,
+      pToDMultiplier: 15000n, // 150% - matches contract default
+      pToCMultiplier: 3000n,  // 30% - matches contract default
+      dToCMultiplier: 2000n,  // 20% - matches contract default
+      pUnitCapacity: 1000000n,
+      dUnitCapacity: 1000000n,
+      cUnitCapacity: 1000000n,
+      effectiveFrom: BigInt(event.block.timestamp),
+      createdAt: BigInt(event.block.timestamp),
+      updatedBy: event.params.creator,
+    };
+    // Save the settings since they don't exist yet
+    context.ProjectSettings.set(initialSettings);
+  }
 
   // Create project entity
   const project: Project = {
