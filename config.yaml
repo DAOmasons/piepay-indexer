@@ -2,7 +2,7 @@
 name: envio-indexer
 networks:
 - id: 421614
-  start_block: 203934483
+  start_block: 203934495
   contracts:
   - name: PiePayFactory
     address:
