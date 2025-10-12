@@ -480,9 +480,9 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
     const initialSettings: ProjectSettings = {
       id: `${projectId}_0`,
       project_id: projectId,
-      pToDMultiplier: 100n,
-      pToCMultiplier: 100n, 
-      dToCMultiplier: 100n,
+      pToDMultiplier: event.params.pToDMultiplier,
+      pToCMultiplier: (event.params.pToDMultiplier * event.params.dToCMultiplier) / 10000n,
+      dToCMultiplier: event.params.dToCMultiplier,
       pUnitCapacity: 1000000n,
       dUnitCapacity: 1000000n,
       cUnitCapacity: 1000000n,
@@ -924,9 +924,9 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayF
   const initialSettings: ProjectSettings = {
     id: `${projectId}_0`, // First settings version
     project_id: projectId,
-    pToDMultiplier: 100n, // Default values - these should come from contract or be configurable
-    pToCMultiplier: 100n,
-    dToCMultiplier: 100n,
+    pToDMultiplier: 10000n, // will be updated by the contract event immediately after initialization
+    pToCMultiplier: 10000n,
+    dToCMultiplier: 10000n,
     pUnitCapacity: 1000000n,
     dUnitCapacity: 1000000n,
     cUnitCapacity: 1000000n,
