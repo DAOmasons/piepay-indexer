@@ -477,12 +477,16 @@ PiePay.ProjectInitialized.handler(async ({ event, context }: { event: PiePay_Pro
     context.log.warn(`Project not found for ProjectInitialized, creating new: ${projectId}`);
     
     // Create project if it doesn't exist (fallback for direct deployments)
+    const defaultPToDMultiplier = 15000n;
+    const defaultPToCMultiplier = 3000n;
+    const defaultDToCMultiplier = 2000n;
+
     const initialSettings: ProjectSettings = {
       id: `${projectId}_0`,
       project_id: projectId,
-      pToDMultiplier: event.params.pToDMultiplier,
-      pToCMultiplier: (event.params.pToDMultiplier * event.params.dToCMultiplier) / 10000n,
-      dToCMultiplier: event.params.dToCMultiplier,
+      pToDMultiplier: defaultPToDMultiplier,
+      pToCMultiplier: defaultPToCMultiplier,
+      dToCMultiplier: defaultDToCMultiplier,
       pUnitCapacity: 1000000n,
       dUnitCapacity: 1000000n,
       cUnitCapacity: 1000000n,
