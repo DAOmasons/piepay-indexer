@@ -751,8 +751,26 @@ PiePay.PayoutRatiosUpdated.handler(async ({ event, context }: { event: PiePay_Pa
 
   // Get current project
   const project = await context.Project.get(projectId);
+
+  // If project doesn't exist yet, this is constructor emission before ProjectCreated
+  // Create payout config that ProjectCreated will find later
   if (!project) {
-    context.log.error(`Project not found for PayoutRatiosUpdated: ${projectId}`);
+    const payoutConfigId = `${projectId}_payoutconfig`;
+    const payoutConfig: PayoutConfig = {
+      id: payoutConfigId,
+      project_id: projectId,
+      pRatio: Number(event.params.pRatio),
+      dRatio: Number(event.params.dRatio),
+      cRatio: Number(event.params.cRatio),
+      waterfallEnabled: event.params.waterfallEnabled,
+      isLocked: false,
+      isConfigured: true,
+      lastUpdated: BigInt(event.block.timestamp),
+      updatedBy: event.params.executor,
+    };
+
+    context.PayoutConfig.set(payoutConfig);
+    // Don't create project event yet - project doesn't exist
     return;
   }
 
@@ -972,6 +990,10 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayF
     context.ProjectSettings.set(initialSettings);
   }
 
+  // Check if payout config already exists (from PayoutRatiosUpdated event that may have fired first)
+  const payoutConfigId = `${projectId}_payoutconfig`;
+  let existingPayoutConfig = await context.PayoutConfig.get(payoutConfigId);
+
   // Create project entity
   const project: Project = {
     id: projectId,
@@ -990,7 +1012,7 @@ PiePayFactory.ProjectCreated.handler(async ({ event, context }: { event: PiePayF
     totalCUnits: 0n,
     totalFunding: 0n,
     currentSettings_id: initialSettings.id,
-    currentPayoutConfig_id: undefined,
+    currentPayoutConfig_id: existingPayoutConfig ? payoutConfigId : undefined,
   };
 
   // Create factory event record
