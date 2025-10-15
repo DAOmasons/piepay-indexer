@@ -98,9 +98,11 @@ PiePay.ContributionApproved.handler(async ({ event, context }: { event: PiePay_C
   };
 
   // Update contributor totals based on unit type
+  // NOTE: We add the units from the event, which are in 4-decimal format (e.g., 10000 = 1.0000 units)
+  // The TotalUnitsUpdated event will sync the project totals with the contract's authoritative values
   let updatedContributor = { ...contributor };
   const unitType = Number(event.params.unitType);
-  
+
   if (unitType === 0) { // P Units
     updatedContributor.totalPUnits += event.params.unitsAwarded;
   } else if (unitType === 1) { // D Units
@@ -110,15 +112,10 @@ PiePay.ContributionApproved.handler(async ({ event, context }: { event: PiePay_C
   }
   updatedContributor.lastUpdated = BigInt(event.block.timestamp);
 
-  // Update project totals
+  // NOTE: We do NOT update project totals here - we rely on TotalUnitsUpdated event
+  // which emits the authoritative total from the contract
+  // This prevents double-counting and sync issues
   let updatedProject = { ...project };
-  if (unitType === 0) {
-    updatedProject.totalPUnits += event.params.unitsAwarded;
-  } else if (unitType === 1) {
-    updatedProject.totalDUnits += event.params.unitsAwarded;
-  } else if (unitType === 2) {
-    updatedProject.totalCUnits += event.params.unitsAwarded;
-  }
   updatedProject.lastUpdated = BigInt(event.block.timestamp);
 
   // Create event record
