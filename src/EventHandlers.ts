@@ -698,7 +698,41 @@ PiePay.UnitCapacityUpdated.handler(async ({ event, context }: { event: PiePay_Un
 
 PiePay.UnitsConverted.handler(async ({ event, context }: { event: PiePay_UnitsConverted_event, context: handlerContext }) => {
   const projectId = createProjectId(event.srcAddress);
-  
+  const contributorId = createContributorId(event.srcAddress, event.params.executor);
+
+  // Get contributor
+  const contributor = await context.Contributor.get(contributorId);
+  if (!contributor) {
+    context.log.error(`Contributor not found for UnitsConverted: ${contributorId}`);
+    return;
+  }
+
+  // Update contributor balances based on conversion
+  // NOTE: fromAmount and toAmount are in 4-decimal format (e.g., 10000 = 1.0000 units)
+  let updatedContributor = { ...contributor };
+  const fromType = Number(event.params.fromType);
+  const toType = Number(event.params.toType);
+
+  // Subtract from source unit type
+  if (fromType === 0) {
+    updatedContributor.totalPUnits -= event.params.fromAmount;
+  } else if (fromType === 1) {
+    updatedContributor.totalDUnits -= event.params.fromAmount;
+  } else if (fromType === 2) {
+    updatedContributor.totalCUnits -= event.params.fromAmount;
+  }
+
+  // Add to target unit type
+  if (toType === 0) {
+    updatedContributor.totalPUnits += event.params.toAmount;
+  } else if (toType === 1) {
+    updatedContributor.totalDUnits += event.params.toAmount;
+  } else if (toType === 2) {
+    updatedContributor.totalCUnits += event.params.toAmount;
+  }
+
+  updatedContributor.lastUpdated = BigInt(event.block.timestamp);
+
   // Create project event record for conversion
   const projectEvent: ProjectEvent = {
     id: createEventId(event),
@@ -715,7 +749,9 @@ PiePay.UnitsConverted.handler(async ({ event, context }: { event: PiePay_UnitsCo
     blockTimestamp: BigInt(event.block.timestamp),
     transactionHash: createTransactionHash(event),
   };
-  
+
+  // Save updates
+  context.Contributor.set(updatedContributor);
   context.ProjectEvent.set(projectEvent);
 });
 
